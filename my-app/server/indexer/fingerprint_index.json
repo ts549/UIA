@@ -1,0 +1,213 @@
+{
+  "078ad721775c": {
+    "fingerprint": "078ad721775c",
+    "component": "div",
+    "props": [],
+    "file": "../../src/App.tsx",
+    "line": 11,
+    "column": 6,
+    "framework": "react"
+  },
+  "6f32a9c8ca6b": {
+    "fingerprint": "6f32a9c8ca6b",
+    "component": "a",
+    "props": [
+      "href",
+      "target"
+    ],
+    "file": "../../src/App.tsx",
+    "line": 12,
+    "column": 8,
+    "framework": "react"
+  },
+  "49c3fa1e4f44": {
+    "fingerprint": "49c3fa1e4f44",
+    "component": "img",
+    "props": [
+      "src",
+      "className",
+      "alt"
+    ],
+    "file": "../../src/App.tsx",
+    "line": 13,
+    "column": 10,
+    "framework": "react"
+  },
+  "75dd38d26885": {
+    "fingerprint": "75dd38d26885",
+    "component": "a",
+    "props": [
+      "href",
+      "target"
+    ],
+    "file": "../../src/App.tsx",
+    "line": 15,
+    "column": 8,
+    "framework": "react"
+  },
+  "855f5dbf2864": {
+    "fingerprint": "855f5dbf2864",
+    "component": "img",
+    "props": [
+      "src",
+      "className",
+      "alt"
+    ],
+    "file": "../../src/App.tsx",
+    "line": 16,
+    "column": 10,
+    "framework": "react"
+  },
+  "5c6107b68695": {
+    "fingerprint": "5c6107b68695",
+    "component": "h1",
+    "props": [],
+    "file": "../../src/App.tsx",
+    "line": 19,
+    "column": 6,
+    "framework": "react"
+  },
+  "81c5f5c562f8": {
+    "fingerprint": "81c5f5c562f8",
+    "component": "div",
+    "props": [
+      "className"
+    ],
+    "file": "../../src/App.tsx",
+    "line": 20,
+    "column": 6,
+    "framework": "react"
+  },
+  "e7a7093f710b": {
+    "fingerprint": "e7a7093f710b",
+    "component": "button",
+    "props": [
+      "onClick"
+    ],
+    "file": "../../src/App.tsx",
+    "line": 21,
+    "column": 8,
+    "framework": "react"
+  },
+  "bcce8b0a30aa": {
+    "fingerprint": "bcce8b0a30aa",
+    "component": "p",
+    "props": [],
+    "file": "../../src/App.tsx",
+    "line": 24,
+    "column": 8,
+    "framework": "react"
+  },
+  "5d5700c71c90": {
+    "fingerprint": "5d5700c71c90",
+    "component": "code",
+    "props": [],
+    "file": "../../src/App.tsx",
+    "line": 25,
+    "column": 15,
+    "framework": "react"
+  },
+  "78a4067d78ec": {
+    "fingerprint": "78a4067d78ec",
+    "component": "p",
+    "props": [
+      "className"
+    ],
+    "file": "../../src/App.tsx",
+    "line": 28,
+    "column": 6,
+    "framework": "react"
+  },
+  "5cfc811a26fa": {
+    "fingerprint": "5cfc811a26fa",
+    "component": "StrictMode",
+    "props": [],
+    "file": "../../src/main.tsx",
+    "line": 8,
+    "column": 2,
+    "framework": "react"
+  },
+  "fd0e24455b08": {
+    "fingerprint": "fd0e24455b08",
+    "component": "Inspector",
+    "props": [],
+    "file": "../../src/main.tsx",
+    "line": 9,
+    "column": 4,
+    "framework": "react"
+  },
+  "eca43f0cfaa3": {
+    "fingerprint": "eca43f0cfaa3",
+    "component": "App",
+    "props": [],
+    "file": "../../src/main.tsx",
+    "line": 10,
+    "column": 6,
+    "framework": "react"
+  },
+  "aa816c989ba7": {
+    "fingerprint": "aa816c989ba7",
+    "component": "button",
+    "props": [
+      "data-inspector-ui",
+      "onClick",
+      "style"
+    ],
+    "file": "../../src/components/Inspector.tsx",
+    "line": 119,
+    "column": 6,
+    "framework": "react"
+  },
+  "78dcf24b1a53": {
+    "fingerprint": "78dcf24b1a53",
+    "component": "div",
+    "props": [
+      "id",
+      "style"
+    ],
+    "file": "../../src/components/Inspector.tsx",
+    "line": 141,
+    "column": 10,
+    "framework": "react"
+  },
+  "2c8f3f34586d": {
+    "fingerprint": "2c8f3f34586d",
+    "component": "div",
+    "props": [
+      "id",
+      "data-inspector-ui",
+      "ref",
+      "style"
+    ],
+    "file": "../../src/components/Inspector.tsx",
+    "line": 161,
+    "column": 10,
+    "framework": "react"
+  },
+  "00ba19a10a92": {
+    "fingerprint": "00ba19a10a92",
+    "component": "textarea",
+    "props": [
+      "placeholder",
+      "value",
+      "onChange",
+      "style"
+    ],
+    "file": "../../src/components/Inspector.tsx",
+    "line": 180,
+    "column": 12,
+    "framework": "react"
+  },
+  "6be52ffe38be": {
+    "fingerprint": "6be52ffe38be",
+    "component": "button",
+    "props": [
+      "onClick",
+      "style"
+    ],
+    "file": "../../src/components/Inspector.tsx",
+    "line": 186,
+    "column": 12,
+    "framework": "react"
+  }
+}
