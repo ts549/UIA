@@ -94,9 +94,9 @@ export default function Inspector({ children }: InspectorProps) {
 
   // compute highlight from the clicked element (if locked) or the hovered element
   const getRect = (el: HTMLElement | null) =>
-    el && typeof el.getBoundingClientRect === "function"
-      ? el.getBoundingClientRect()
-      : null;
+  el && typeof el.getBoundingClientRect === "function" ?
+  el.getBoundingClientRect() :
+  null;
 
   const highlight = getRect(clickEl ?? hoverEl);
   const clickRect = getRect(clickEl);
@@ -129,82 +129,82 @@ export default function Inspector({ children }: InspectorProps) {
           border: "none",
           background: enabled ? "#0b8" : "#08f",
           color: "white",
-          cursor: "pointer",
-        }}
-      >
+          cursor: "pointer"
+        }}>
+        
         Activate Inspector
       </button>
 
       {/* Highlight overlay */}
       {enabled && highlight &&
-        ReactDOM.createPortal(
-          <div
-            id="overlay"
-            style={{
-              position: "fixed",
-              top: highlight.top + window.scrollY,
-              left: highlight.left + window.scrollX,
-              width: highlight.width,
-              height: highlight.height,
-              border: "2px solid red",
-              background: "rgba(255, 0, 0, 0.1)",
-              pointerEvents: "none",
-              zIndex: 9999,
-            }}
-          />,
-          document.body
-        )}
+      ReactDOM.createPortal(
+        <div
+          id="overlay"
+          style={{
+            position: "fixed",
+            top: highlight.top + window.scrollY,
+            left: highlight.left + window.scrollX,
+            width: highlight.width,
+            height: highlight.height,
+            border: "2px solid red",
+            background: "rgba(255, 0, 0, 0.1)",
+            pointerEvents: "none",
+            zIndex: 9999
+          }} />,
+
+        document.body
+      )}
 
       {/* Click popup */}
       {enabled && clickEl &&
-        ReactDOM.createPortal(
-          <div
-            id="popup"
-            data-inspector-ui="true"
-            ref={(el: HTMLDivElement | null): void => {
-              popupRef.current = el;
-              return;
+      ReactDOM.createPortal(
+        <div
+          id="popup"
+          data-inspector-ui="true"
+          ref={(el: HTMLDivElement | null): void => {
+            popupRef.current = el;
+            return;
+          }}
+          style={{
+            position: "fixed",
+            top: ((clickRect && clickRect.bottom) ?? 0) + window.scrollY + 5,
+            left: ((clickRect && clickRect.left) ?? 0) + window.scrollX,
+            background: "white",
+            border: "1px solid #ccc",
+            borderRadius: "8px",
+            padding: "8px",
+            zIndex: 10000,
+            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)"
+          }}>
+          
+            <textarea
+            placeholder="Ask a question about this element..."
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            style={{ width: "200px", height: "60px" }} />
+          
+            <button
+            onClick={() => {
+              console.log("Submit:", question, clickEl);
+              setClickEl(null);
+              setQuestion("");
             }}
             style={{
-              position: "fixed",
-              top: ((clickRect && clickRect.bottom) ?? 0) + window.scrollY + 5,
-              left: ((clickRect && clickRect.left) ?? 0) + window.scrollX,
-              background: "white",
-              border: "1px solid #ccc",
-              borderRadius: "8px",
-              padding: "8px",
-              zIndex: 10000,
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-            }}
-          >
-            <textarea
-              placeholder="Ask a question about this element..."
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              style={{ width: "200px", height: "60px" }}
-            />
-            <button
-              onClick={() => {
-                console.log("Submit:", question, clickEl);
-                setClickEl(null);
-                setQuestion("");
-              }}
-              style={{
-                display: "block",
-                marginTop: "4px",
-                padding: "4px 8px",
-                borderRadius: "4px",
-                border: "none",
-                background: "#007bff",
-                color: "white",
-                cursor: "pointer",
-              }}
-            >
+              display: "block",
+              marginTop: "4px",
+              padding: "4px 8px",
+              borderRadius: "4px",
+              border: "none",
+              background: "#007bff",
+              color: "white",
+              cursor: "pointer"
+            }}>
+            
               Submit
             </button>
           </div>,
-          document.body
-        )}
-    </>
-  );
+        document.body
+      )}
+    </>);
+
 }
