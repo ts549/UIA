@@ -35,6 +35,21 @@ async function spawnFrontend(rootDir, options = {}) {
   try {
     const fingerprintResults = addFingerprints(rootDir, { attributeName });
     console.log(`✓ Fingerprints generated: ${fingerprintResults.totalFingerprintsAdded} attributes added`);
+    
+    // Write fingerprints to fingerprints.json
+    const fingerprintsMap = {};
+    fingerprintResults.allFingerprints.forEach(fp => {
+      fingerprintsMap[fp.id] = {
+        file: fp.file,
+        elementName: fp.elementName,
+        line: fp.line,
+        column: fp.column
+      };
+    });
+    
+    const fingerprintsFilePath = './fingerprints.json';
+    fs.writeFileSync(fingerprintsFilePath, JSON.stringify(fingerprintsMap, null, 2), 'utf-8');
+    console.log(`✓ Fingerprints written to: ${fingerprintsFilePath}`);
   } catch (error) {
     console.error('⚠ Warning: Failed to generate fingerprints:', error.message);
     console.log('Continuing with spawn...');

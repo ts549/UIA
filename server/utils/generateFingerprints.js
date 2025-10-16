@@ -4,16 +4,41 @@ import { fileURLToPath } from 'url';
 import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
 import generate from '@babel/generator';
+import CryptoJS from 'crypto-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * Generates a unique fingerprint ID
+ * Generates a unique fingerprint ID based on file path, line, and column
+ * @param {string} filePath - The file path of the JSX element
+ * @param {number} line - Line number in the source file
+ * @param {number} column - Column number in the source file
  * @returns {string} A unique fingerprint ID
  */
-function generateFingerprintId() {
-  return `fp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+function generateFingerprintId(filePath, line, column) {
+  // Sort keys recursively for deterministic serialization
+  const sortKeys = (obj) => {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(sortKeys);
+    return Object.keys(obj).sort().reduce((result, key) => {
+      result[key] = sortKeys(obj[key]);
+      return result;
+    }, {});
+  };
+  
+  const data = {
+    filePath,
+    line,
+    column
+  };
+  
+  const sorted = sortKeys(data);
+  const normalized = JSON.stringify(sorted);
+  console.log('Input:', data);
+  console.log('Sorted:', sorted);
+  console.log('Normalized:', normalized);
+  return CryptoJS.SHA256(normalized).toString(CryptoJS.enc.Hex).slice(0, 12);
 }
 
 /**
@@ -80,7 +105,15 @@ function addFingerprintsToFile(filePath, attributeName = 'data-fingerprint') {
         );
 
         if (!hasFingerprint) {
-          const fingerprintId = generateFingerprintId();
+          // Get the element name for tracking
+          const elementName = path.node.name.name || 'Unknown';
+          
+          // Get location information
+          const line = path.node.loc?.start.line || 0;
+          const column = path.node.loc?.start.column || 0;
+          
+          // Generate fingerprint with file path, line, and column
+          const fingerprintId = generateFingerprintId(filePath, line, column);
           
           // Create the attribute node
           const attribute = {
@@ -102,7 +135,9 @@ function addFingerprintsToFile(filePath, attributeName = 'data-fingerprint') {
           fingerprints.push({
             id: fingerprintId,
             file: filePath,
-            elementName: path.node.name.name || 'Unknown',
+            elementName: elementName,
+            line: line,
+            column: column,
           });
         }
       },

@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { spawnFrontend, stopFrontend } from './utils/spawnFrontend.js';
 
@@ -17,6 +18,33 @@ app.use(express.json());
 // Routes
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'UIA Server is running' });
+});
+
+// Fingerprint endpoint - returns data for a specific fingerprint ID
+app.get('/api/fingerprint/:id', (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const fingerprintsPath = path.resolve(__dirname, 'fingerprints.json');
+    
+    // Check if fingerprints.json exists
+    if (!fs.existsSync(fingerprintsPath)) {
+      return res.status(404).json({ error: 'Fingerprints file not found' });
+    }
+    
+    const fingerprintsData = fs.readFileSync(fingerprintsPath, 'utf-8');
+    const fingerprints = JSON.parse(fingerprintsData);
+    
+    // Check if the fingerprint ID exists
+    if (!fingerprints[id]) {
+      return res.status(404).json({ error: 'Fingerprint not found' });
+    }
+    
+    res.json(fingerprints[id]);
+  } catch (error) {
+    console.error('Error reading fingerprints:', error);
+    res.status(500).json({ error: 'Failed to read fingerprint data' });
+  }
 });
 
 // Example API endpoint
@@ -56,8 +84,13 @@ async function gracefulShutdown(signal) {
     await stopFrontend(frontendProcess);
   }
   
-  console.log('Goodbye!');
-  process.exit(0);
+  // Close the Express server
+  console.log('Stopping Express server...');
+  server.close(() => {
+    console.log('Express server closed');
+    console.log('Goodbye!');
+    process.exit(0);
+  });
 }
 
 // Listen for termination signals

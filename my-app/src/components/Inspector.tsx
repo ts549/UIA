@@ -10,16 +10,17 @@ export default function Inspector({ children }: InspectorProps) {
   const [hoverEl, setHoverEl] = useState<HTMLElement | null>(null);
   const [clickEl, setClickEl] = useState<HTMLElement | null>(null);
   const [question, setQuestion] = useState<string>("");
+  const [fingerprintData, setFingerprintData] = useState<any>(null);
   const lockRef = React.useRef(false);
   const popupRef = React.useRef<HTMLElement | null>(null);
   const [enabled, setEnabled] = useState<boolean>(false);
 
   // Start observing the DOM tree for fingerprinting
-  useEffect(() => {
-    startDomObservation((el, fp) => {
-      console.log("Observed element:", el.tagName, fp);
-    });
-  }, []);
+  // useEffect(() => {
+  //   startDomObservation((el, fp) => {
+  //     console.log("Observed element:", el.tagName, fp);
+  //   });
+  // }, []);
 
   // Keep lockRef in sync with clickEl without re-registering listeners
   useEffect(() => {
@@ -40,7 +41,7 @@ export default function Inspector({ children }: InspectorProps) {
       setHoverEl(target);
     };
 
-    const handleClick = (e: MouseEvent) => {
+    const handleClick = async (e: MouseEvent) => {
       const target = e.target;
       // prefer not to change behaviour for non-HTMLElements
       if (!(target instanceof HTMLElement)) return;
@@ -48,8 +49,8 @@ export default function Inspector({ children }: InspectorProps) {
       // ignore clicks on inspector UI so buttons keep working
       if (target.closest('[data-inspector-ui="true"]')) return;
 
-      // Log fingerprint metadata before we call stopPropagation/preventDefault
-      const fp = target.dataset?.fp;
+      // Get fingerprint from data-fingerprint attribute
+      const fp = target.getAttribute('data-fingerprint');
       if (fp) console.log("Clicked element fingerprint:", fp);
 
       e.preventDefault();
@@ -59,6 +60,27 @@ export default function Inspector({ children }: InspectorProps) {
       if (!lockRef.current) {
         setClickEl(target);
         lockRef.current = true;
+
+        // Fetch fingerprint data from backend
+        if (fp) {
+          try {
+            const response = await fetch(`http://localhost:3001/api/fingerprint/${fp}`);
+            if (response.ok) {
+              const data = await response.json();
+              setFingerprintData(data);
+              console.log("Fingerprint data:", data);
+            } else {
+              console.error("Failed to fetch fingerprint data");
+              setFingerprintData(null);
+            }
+          } catch (error) {
+            console.error("Error fetching fingerprint data:", error);
+            setFingerprintData(null);
+          }
+        } else {
+          setFingerprintData(null);
+        }
+
         return;
       }
 
@@ -68,6 +90,7 @@ export default function Inspector({ children }: InspectorProps) {
         if (!popupNode.contains(target)) {
           setClickEl(null);
           lockRef.current = false;
+          setFingerprintData(null);
         }
         return;
       }
@@ -76,6 +99,7 @@ export default function Inspector({ children }: InspectorProps) {
       if (clickEl && !clickEl.contains(target)) {
         setClickEl(null);
         lockRef.current = false;
+        setFingerprintData(null);
       }
     };
 
@@ -174,20 +198,30 @@ export default function Inspector({ children }: InspectorProps) {
             borderRadius: "8px",
             padding: "8px",
             zIndex: 10000,
-            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)"
+            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+            minWidth: "250px"
           }}>
+          
+            {fingerprintData &&
+          <div style={{ marginBottom: "8px", fontSize: "12px", color: "#666" }}>
+                <div><strong>File:</strong> {fingerprintData.file}</div>
+                <div><strong>Element:</strong> {fingerprintData.elementName}</div>
+                <div><strong>Line:</strong> {fingerprintData.line}, <strong>Column:</strong> {fingerprintData.column}</div>
+              </div>
+          }
           
             <textarea
             placeholder="Ask a question about this element..."
-            value={question}
+            value={question || (fingerprintData ? `Element: ${fingerprintData.elementName}\nFile: ${fingerprintData.file}\nLine: ${fingerprintData.line}, Column: ${fingerprintData.column}` : "")}
             onChange={(e) => setQuestion(e.target.value)}
-            style={{ width: "200px", height: "60px" }} />
+            style={{ width: "100%", height: "80px", fontSize: "12px" }} />
           
             <button
             onClick={() => {
-              console.log("Submit:", question, clickEl);
+              console.log("Submit:", question, clickEl, fingerprintData);
               setClickEl(null);
               setQuestion("");
+              setFingerprintData(null);
             }}
             style={{
               display: "block",
