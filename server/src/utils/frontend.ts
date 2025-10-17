@@ -1,22 +1,33 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
-import { addFingerprints, removeFingerprints } from './generateFingerprints.js';
+import { addFingerprints } from './fingerprints/addFingerprints.ts';
+import { removeFingerprints } from './fingerprints/removeFingerprints.ts';
+import type { ChildProcess } from 'child_process';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Extend ChildProcess to include custom properties
+interface ExtendedChildProcess extends ChildProcess {
+  projectRootDir?: string;
+  fingerprintAttributeName?: string;
+}
+
+interface FingerprintData {
+  file: string;
+  elementName: string;
+  line: number;
+  column: number;
+}
+
+interface FingerprintsMap {
+  [key: string]: FingerprintData;
+}
 
 /**
  * Spawns a React project as a subprocess
- * @param {string} rootDir - The root directory of the React project
- * @param {object} options - Optional configuration
- * @param {string} options.command - The npm command to run (default: 'dev')
- * @param {boolean} options.silent - Whether to suppress output (default: false)
- * @param {string} options.attributeName - Custom fingerprint attribute name (default: 'data-fingerprint')
- * @returns {Promise<ChildProcess>} - Returns the spawned child process
  */
-async function spawnFrontend(rootDir, options = {}) {
+async function spawnFrontend(rootDir: string,
+                            options: {command?: string, silent?: boolean, attributeName?: string} = {}): Promise<ChildProcess> {
+
   const { command = 'dev', silent = false, attributeName = 'data-fingerprint' } = options;
 
   // Validate that the directory exists
@@ -37,8 +48,8 @@ async function spawnFrontend(rootDir, options = {}) {
     console.log(`✓ Fingerprints generated: ${fingerprintResults.totalFingerprintsAdded} attributes added`);
     
     // Write fingerprints to fingerprints.json
-    const fingerprintsMap = {};
-    fingerprintResults.allFingerprints.forEach(fp => {
+    const fingerprintsMap: FingerprintsMap = {};
+    fingerprintResults.allFingerprints.forEach((fp: any) => {
       fingerprintsMap[fp.id] = {
         file: fp.file,
         elementName: fp.elementName,
@@ -51,7 +62,8 @@ async function spawnFrontend(rootDir, options = {}) {
     fs.writeFileSync(fingerprintsFilePath, JSON.stringify(fingerprintsMap, null, 2), 'utf-8');
     console.log(`✓ Fingerprints written to: ${fingerprintsFilePath}`);
   } catch (error) {
-    console.error('⚠ Warning: Failed to generate fingerprints:', error.message);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('⚠ Warning: Failed to generate fingerprints:', errorMessage);
     console.log('Continuing with spawn...');
   }
   console.log('================================\n');
@@ -70,12 +82,12 @@ async function spawnFrontend(rootDir, options = {}) {
 
     if (!silent) {
       // Pipe stdout
-      child.stdout.on('data', (data) => {
+      child.stdout?.on('data', (data) => {
         console.log(`[Frontend]: ${data.toString().trim()}`);
       });
 
       // Pipe stderr
-      child.stderr.on('data', (data) => {
+      child.stderr?.on('data', (data) => {
         console.error(`[Frontend Error]: ${data.toString().trim()}`);
       });
     }
@@ -101,9 +113,10 @@ async function spawnFrontend(rootDir, options = {}) {
       if (child.exitCode === null) {
         console.log(`Frontend started successfully in: ${rootDir}`);
         // Attach the rootDir and attributeName to the child process for later use
-        child.projectRootDir = rootDir;
-        child.fingerprintAttributeName = attributeName;
-        resolve(child);
+        const extendedChild = child as ExtendedChildProcess;
+        extendedChild.projectRootDir = rootDir;
+        extendedChild.fingerprintAttributeName = attributeName;
+        resolve(extendedChild);
       } else {
         reject(new Error(`Frontend process exited immediately with code ${child.exitCode}`));
       }
@@ -113,15 +126,13 @@ async function spawnFrontend(rootDir, options = {}) {
 
 /**
  * Stops a running frontend process and removes fingerprints
- * @param {ChildProcess} process - The child process to stop
- * @returns {Promise<void>}
  */
-async function stopFrontend(process) {
+async function stopFrontend(process: ExtendedChildProcess): Promise<void> {
   if (!process || process.exitCode !== null) {
     return;
   }
 
-  return new Promise((resolve) => {
+  return new Promise<void>((resolve) => {
     process.on('exit', async () => {
       console.log('Frontend process stopped');
       
@@ -135,7 +146,8 @@ async function stopFrontend(process) {
           );
           console.log(`✓ Fingerprints removed: ${removeResults.totalFingerprintsRemoved} attributes removed`);
         } catch (error) {
-          console.error('⚠ Warning: Failed to remove fingerprints:', error.message);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error('⚠ Warning: Failed to remove fingerprints:', errorMessage);
         }
         console.log('================================\n');
       }

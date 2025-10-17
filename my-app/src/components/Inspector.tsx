@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom";
-import { startDomObservation } from "../indexer/observe";
-
 interface InspectorProps {
   children: React.ReactNode;
 }
@@ -14,13 +12,6 @@ export default function Inspector({ children }: InspectorProps) {
   const lockRef = React.useRef(false);
   const popupRef = React.useRef<HTMLElement | null>(null);
   const [enabled, setEnabled] = useState<boolean>(false);
-
-  // Start observing the DOM tree for fingerprinting
-  // useEffect(() => {
-  //   startDomObservation((el, fp) => {
-  //     console.log("Observed element:", el.tagName, fp);
-  //   });
-  // }, []);
 
   // Keep lockRef in sync with clickEl without re-registering listeners
   useEffect(() => {
@@ -64,7 +55,7 @@ export default function Inspector({ children }: InspectorProps) {
         // Fetch fingerprint data from backend
         if (fp) {
           try {
-            const response = await fetch(`http://localhost:3001/api/fingerprint/${fp}`);
+            const response = await fetch(`http://localhost:3001/api/sourceData/${fp}`);
             if (response.ok) {
               const data = await response.json();
               setFingerprintData(data);
@@ -240,5 +231,4 @@ export default function Inspector({ children }: InspectorProps) {
         document.body
       )}
     </>);
-
 }

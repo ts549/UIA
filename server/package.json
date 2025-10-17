@@ -2,11 +2,11 @@
   "name": "uia-server",
   "version": "1.0.0",
   "description": "Express server for UIA",
-  "main": "index.js",
+  "main": "index.ts",
   "type": "module",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node index.js"
+    "start": "node index.ts",
+    "dev": "node index.ts"
   },
   "keywords": [],
   "author": "",
@@ -18,5 +18,14 @@
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
     "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "@types/babel__generator": "^7.27.0",
+    "@types/babel__traverse": "^7.28.0",
+    "@types/cors": "^2.8.19",
+    "@types/crypto-js": "^4.2.2",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.8.1",
+    "typescript": "^5.9.3"
   }
 }
