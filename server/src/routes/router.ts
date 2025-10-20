@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import sourceDataRoutes from './sourceData.ts';
+import promptAgentRoutes from './promptAgent.ts';
 
 const router = Router();
 
@@ -10,5 +11,6 @@ router.get('/health', (req, res) => {
 });
 
 router.use('/sourceData', sourceDataRoutes);
+router.use('/promptAgent', promptAgentRoutes);
 
 export default router;

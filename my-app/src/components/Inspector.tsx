@@ -18,7 +18,79 @@ export default function Inspector({ children }: InspectorProps) {
     lockRef.current = !!clickEl;
   }, [clickEl]);
 
-  useEffect(() => {
+  const calculatePopupPosition = (rect: DOMRect | null) => {
+    if (!rect) return { top: 0, left: 0 };
+
+    const popupWidth = 250; // minWidth from popup style
+    const popupHeight = 200; // estimated height (can be adjusted)
+    const margin = 10;
+
+    // Default position below the element
+    let top = rect.bottom + window.scrollY + 5;
+    let left = rect.left + window.scrollX;
+
+    // Check if we can fit the popup above the element (with 10px margin)
+    const topAbove = rect.top + window.scrollY - popupHeight - margin;
+    const fitsAbove = topAbove >= window.scrollY && topAbove >= 0;
+    const fitsBelow = top + popupHeight <= window.innerHeight + window.scrollY;
+
+    // If it doesn't fit below but fits above, move it above
+    if (!fitsBelow && fitsAbove) {
+      top = topAbove;
+    }
+    // If it doesn't fit below and doesn't fit above, position near bottom of highlight
+    else if (!fitsBelow && !fitsAbove) {
+      top = rect.bottom + window.scrollY - 140; // Keep popup near bottom with minimal gap
+    }
+
+    // Adjust left to keep popup on screen
+    if (left + popupWidth > window.innerWidth + window.scrollX) {
+      left = window.innerWidth + window.scrollX - popupWidth - margin;
+    }
+    if (left < window.scrollX) {
+      left = window.scrollX + margin;
+    }
+
+    return { top, left };
+  };
+
+  const handleSubmit = async () => {
+    const fp = clickEl?.getAttribute('data-fingerprint');
+
+    if (!fp || !question) {
+      console.error("Missing fingerprint or question");
+      return;
+    }
+
+    try {
+      console.log("Submitting to prompt agent:", { fingerprintId: fp, message: question });
+
+      const response = await fetch(`http://localhost:3001/api/promptAgent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fingerprintId: fp,
+          message: question
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Prompt agent response:", data);
+      } else {
+        console.error("Failed to submit to prompt agent");
+      }
+    } catch (error) {
+      console.error("Error submitting to prompt agent:", error);
+    }
+
+    // Clear state after submission
+    setClickEl(null);
+    setQuestion("");
+    setFingerprintData(null);
+  };useEffect(() => {
     const handleMouseOver = (e: MouseEvent) => {
       // if an element is clicked (locked), ignore hover changes
       if (lockRef.current) return;
@@ -115,6 +187,7 @@ export default function Inspector({ children }: InspectorProps) {
 
   const highlight = getRect(clickEl ?? hoverEl);
   const clickRect = getRect(clickEl);
+  const popupPosition = calculatePopupPosition(clickRect);
 
   // When disabled, clear any hover/click state and lock
   useEffect(() => {
@@ -146,7 +219,7 @@ export default function Inspector({ children }: InspectorProps) {
           color: "white",
           cursor: "pointer"
         }}>
-        
+
         Activate Inspector
       </button>
 
@@ -182,8 +255,8 @@ export default function Inspector({ children }: InspectorProps) {
           }}
           style={{
             position: "fixed",
-            top: ((clickRect && clickRect.bottom) ?? 0) + window.scrollY + 5,
-            left: ((clickRect && clickRect.left) ?? 0) + window.scrollX,
+            top: popupPosition.top,
+            left: popupPosition.left,
             background: "white",
             border: "1px solid #ccc",
             borderRadius: "8px",
@@ -192,7 +265,7 @@ export default function Inspector({ children }: InspectorProps) {
             boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
             minWidth: "250px"
           }}>
-          
+
             {fingerprintData &&
           <div style={{ marginBottom: "8px", fontSize: "12px", color: "#666" }}>
                 <div><strong>File:</strong> {fingerprintData.file}</div>
@@ -200,20 +273,15 @@ export default function Inspector({ children }: InspectorProps) {
                 <div><strong>Line:</strong> {fingerprintData.line}, <strong>Column:</strong> {fingerprintData.column}</div>
               </div>
           }
-          
+
             <textarea
             placeholder="Ask a question about this element..."
-            value={question || (fingerprintData ? `Element: ${fingerprintData.elementName}\nFile: ${fingerprintData.file}\nLine: ${fingerprintData.line}, Column: ${fingerprintData.column}` : "")}
+            value={question}
             onChange={(e) => setQuestion(e.target.value)}
             style={{ width: "100%", height: "80px", fontSize: "12px" }} />
-          
+
             <button
-            onClick={() => {
-              console.log("Submit:", question, clickEl, fingerprintData);
-              setClickEl(null);
-              setQuestion("");
-              setFingerprintData(null);
-            }}
+            onClick={handleSubmit}
             style={{
               display: "block",
               marginTop: "4px",

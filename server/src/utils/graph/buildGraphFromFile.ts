@@ -6,6 +6,7 @@ import _generate from '@babel/generator';
 import * as t from "@babel/types";
 import { graphStore } from "./graphStore.ts";
 import { visualizeGraph } from "./visualizeGraph.ts";
+import generateFingerprintId from "../fingerprints/generateFingerprintId.ts";
 
 const traverse = (_traverse as any).default || _traverse;
 const generate = (_generate as any).default || _generate;
@@ -31,15 +32,23 @@ export function buildGraphFromFile(filePath: string) {
     FunctionDeclaration(path: any) {
       const name = path.node.id?.name;
       if (name) {
+        const line = path.node.loc?.start.line;
+        const col = path.node.loc?.start.column;
+        
+        // Generate fingerprint ID if location is available, otherwise use name
+        const nodeId = (line !== undefined && col !== undefined)
+          ? generateFingerprintId(filePath, line, col)
+          : name;
+        
         const codeSnippet = generate(path.node).code;
-        graphStore.addNode(name, {
+        graphStore.addNode(nodeId, {
           name,
           type: 'function',
           filePath,
           location: {
             start: {
-              line: path.node.loc?.start.line || 0,
-              column: path.node.loc?.start.column || 0,
+              line: line || 0,
+              column: col || 0,
             },
             end: {
               line: path.node.loc?.end.line || 0,
@@ -48,7 +57,7 @@ export function buildGraphFromFile(filePath: string) {
           },
           codeSnippet,
         });
-        currentFunction = name;
+        currentFunction = nodeId;
       }
     },
     VariableDeclarator(path: any) {
@@ -58,15 +67,23 @@ export function buildGraphFromFile(filePath: string) {
           t.isFunctionExpression(path.node.init))
       ) {
         const name = path.node.id.name;
+        const line = path.node.loc?.start.line;
+        const col = path.node.loc?.start.column;
+        
+        // Generate fingerprint ID if location is available, otherwise use name
+        const nodeId = (line !== undefined && col !== undefined)
+          ? generateFingerprintId(filePath, line, col)
+          : name;
+        
         const codeSnippet = generate(path.node).code;
-        graphStore.addNode(name, {
+        graphStore.addNode(nodeId, {
           name,
           type: 'function',
           filePath,
           location: {
             start: {
-              line: path.node.loc?.start.line || 0,
-              column: path.node.loc?.start.column || 0,
+              line: line || 0,
+              column: col || 0,
             },
             end: {
               line: path.node.loc?.end.line || 0,
@@ -75,7 +92,7 @@ export function buildGraphFromFile(filePath: string) {
           },
           codeSnippet,
         });
-        currentFunction = name;
+        currentFunction = nodeId;
       }
     },
 
@@ -88,10 +105,12 @@ export function buildGraphFromFile(filePath: string) {
           : null;
         if (!tagName) return;
 
-        // Create unique ID: fileName_line_col
-        const line = path.node.loc?.start.line || 0;
-        const col = path.node.loc?.start.column || 0;
-        const elementId = `${fileName}_${line}_${col}`;
+        // Create unique ID using fingerprint
+        const line = path.node.loc?.start.line;
+        const col = path.node.loc?.start.column;
+        const elementId = (line !== undefined && col !== undefined)
+          ? generateFingerprintId(filePath, line, col)
+          : `${fileName}_${Math.random().toString(36).substr(2, 9)}`;
 
         // Extract props from JSX attributes
         const props: Record<string, any> = {};
@@ -121,8 +140,8 @@ export function buildGraphFromFile(filePath: string) {
           filePath,
           location: {
             start: {
-              line: path.node.loc?.start.line || 0,
-              column: path.node.loc?.start.column || 0,
+              line: line || 0,
+              column: col || 0,
             },
             end: {
               line: path.node.loc?.end.line || 0,
@@ -138,43 +157,51 @@ export function buildGraphFromFile(filePath: string) {
 
         // Find the parent component/function that contains this JSX
         const parentFunc = path.getFunctionParent();
-        let parentComponentName: string | null = null;
+        let parentComponentId: string | null = null;
 
         if (parentFunc) {
-          // Check if it's a function declaration with an id
-          if (t.isFunctionDeclaration(parentFunc.node) && parentFunc.node.id) {
-            parentComponentName = parentFunc.node.id.name;
+          const parentLine = parentFunc.node.loc?.start.line;
+          const parentCol = parentFunc.node.loc?.start.column;
+          
+          // Generate parent function ID using fingerprint
+          if (parentLine !== undefined && parentCol !== undefined) {
+            parentComponentId = generateFingerprintId(filePath, parentLine, parentCol);
           }
-          // Check if it's a variable declarator (arrow function or function expression)
+          // Fallback to name if location not available
+          else if (t.isFunctionDeclaration(parentFunc.node) && parentFunc.node.id) {
+            parentComponentId = parentFunc.node.id.name;
+          }
           else if (parentFunc.parentPath?.isVariableDeclarator()) {
             const declarator = parentFunc.parentPath.node;
             if (t.isIdentifier(declarator.id)) {
-              parentComponentName = declarator.id.name;
+              parentComponentId = declarator.id.name;
             }
           }
         }
 
         // If this JSX is directly inside a component/function, create "contains" edge
-        if (parentComponentName) {
+        if (parentComponentId) {
           // Find the immediate parent JSX element (if any)
           const parentJSX = path.findParent((p: any) => p.isJSXElement());
           
           if (parentJSX) {
             // This JSX has a parent JSX element - create contains edge from parent to this
-            const parentLine = parentJSX.node.loc?.start.line || 0;
-            const parentCol = parentJSX.node.loc?.start.column || 0;
-            const parentElementId = `${fileName}_${parentLine}_${parentCol}`;
+            const parentLine = parentJSX.node.loc?.start.line;
+            const parentCol = parentJSX.node.loc?.start.column;
+            const parentElementId = (parentLine !== undefined && parentCol !== undefined)
+              ? generateFingerprintId(filePath, parentLine, parentCol)
+              : `${fileName}_${Math.random().toString(36).substr(2, 9)}`;
             
             graphStore.addEdge("contains", parentElementId, elementId);
           } else {
             // This is a top-level JSX element in the component - directly contained by the component
-            graphStore.addEdge("contains", parentComponentName, elementId);
+            graphStore.addEdge("contains", parentComponentId, elementId);
           }
         }
 
         // Create "renders" edge for React components (capitalized)
-        if (parentComponentName && /^[A-Z]/.test(tagName)) {
-          graphStore.addEdge("renders", parentComponentName, tagName);
+        if (parentComponentId && /^[A-Z]/.test(tagName)) {
+          graphStore.addEdge("renders", parentComponentId, tagName);
         }
 
         // --- JSX props like onClick={handleClick} (binds_event edge) ---
