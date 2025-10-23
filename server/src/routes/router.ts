@@ -1,16 +1,11 @@
 import { Router } from 'express';
-import sourceDataRoutes from './sourceData.ts';
-import promptAgentRoutes from './promptAgent.ts';
+import healthRoutes from './health.ts';
+import agentRoutes from './agent.ts';
 
 const router = Router();
 
 // health check route (still simple)
-router.get('/health', (req, res) => {
-  console.log(req);
-  res.json({ status: 'ok', message: 'UIA Server is running' });
-});
-
-router.use('/sourceData', sourceDataRoutes);
-router.use('/promptAgent', promptAgentRoutes);
+router.use('/health', healthRoutes);
+router.use('/agent', agentRoutes);
 
 export default router;

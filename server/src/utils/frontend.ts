@@ -3,23 +3,13 @@ import path from 'path';
 import fs from 'fs';
 import { addFingerprints } from './fingerprints/addFingerprints.ts';
 import { removeFingerprints } from './fingerprints/removeFingerprints.ts';
+import { buildGraph } from './graph/buildGraph.ts';
 import type { ChildProcess } from 'child_process';
 
 // Extend ChildProcess to include custom properties
 interface ExtendedChildProcess extends ChildProcess {
   projectRootDir?: string;
   fingerprintAttributeName?: string;
-}
-
-interface FingerprintData {
-  file: string;
-  elementName: string;
-  line: number;
-  column: number;
-}
-
-interface FingerprintsMap {
-  [key: string]: FingerprintData;
 }
 
 /**
@@ -47,23 +37,14 @@ async function spawnFrontend(rootDir: string,
     const fingerprintResults = addFingerprints(rootDir, { attributeName });
     console.log(`✓ Fingerprints generated: ${fingerprintResults.totalFingerprintsAdded} attributes added`);
     
-    // Write fingerprints to fingerprints.json
-    const fingerprintsMap: FingerprintsMap = {};
-    fingerprintResults.allFingerprints.forEach((fp: any) => {
-      fingerprintsMap[fp.id] = {
-        file: fp.file,
-        elementName: fp.elementName,
-        line: fp.line,
-        column: fp.column
-      };
-    });
-    
-    const fingerprintsFilePath = './fingerprints.json';
-    fs.writeFileSync(fingerprintsFilePath, JSON.stringify(fingerprintsMap, null, 2), 'utf-8');
-    console.log(`✓ Fingerprints written to: ${fingerprintsFilePath}`);
+    // Build graph and write to graph.json instead of fingerprints.json
+    console.log('\n=== Building Code Graph ===');
+    const srcDir = path.join(rootDir, 'src');
+    buildGraph(srcDir);
+    console.log('✓ Graph built and written to graph.json');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('⚠ Warning: Failed to generate fingerprints:', errorMessage);
+    console.error('⚠ Warning: Failed to generate fingerprints or build graph:', errorMessage);
     console.log('Continuing with spawn...');
   }
   console.log('================================\n');

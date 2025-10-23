@@ -5,13 +5,46 @@ import _traverse from '@babel/traverse';
 import _generate from '@babel/generator';
 import * as t from "@babel/types";
 import { graphStore } from "./graphStore.ts";
-import { visualizeGraph } from "./visualizeGraph.ts";
 import generateFingerprintId from "../fingerprints/generateFingerprintId.ts";
 
 const traverse = (_traverse as any).default || _traverse;
 const generate = (_generate as any).default || _generate;
 
-export function buildGraphFromFile(filePath: string) {
+function createNodeFromFunction(path: any, filePath: string) {
+  const name = path.node.id?.name;
+  if (name) {
+    const line = path.node.loc?.start.line;
+    const col = path.node.loc?.start.column;
+    
+    // Generate fingerprint ID if location is available, otherwise use name
+    const nodeId = (line !== undefined && col !== undefined)
+      ? generateFingerprintId(filePath, line, col)
+      : name;
+
+    const codeSnippet = generate(path.node).code;
+    graphStore.addNode(nodeId, {
+      name,
+      type: 'function',
+      filePath,
+      location: {
+        start: {
+          line: line || 0,
+          column: col || 0,
+        },
+        end: {
+          line: path.node.loc?.end.line || 0,
+          column: path.node.loc?.end.column || 0,
+        },
+      },
+      codeSnippet,
+    });
+    return nodeId;
+  }
+
+  return null;
+}
+
+export function parseNodes(filePath: string) {
   const code = fs.readFileSync(filePath, "utf-8");
 
   const ast = parse(code, {
@@ -28,71 +61,21 @@ export function buildGraphFromFile(filePath: string) {
   let currentJSXElement: string | null = null;
 
   traverse(ast, {
-    // --- COMPONENT / FUNCTION NODES ---
+    // --- FUNCTION NODES ---
     FunctionDeclaration(path: any) {
-      const name = path.node.id?.name;
-      if (name) {
-        const line = path.node.loc?.start.line;
-        const col = path.node.loc?.start.column;
-        
-        // Generate fingerprint ID if location is available, otherwise use name
-        const nodeId = (line !== undefined && col !== undefined)
-          ? generateFingerprintId(filePath, line, col)
-          : name;
-        
-        const codeSnippet = generate(path.node).code;
-        graphStore.addNode(nodeId, {
-          name,
-          type: 'function',
-          filePath,
-          location: {
-            start: {
-              line: line || 0,
-              column: col || 0,
-            },
-            end: {
-              line: path.node.loc?.end.line || 0,
-              column: path.node.loc?.end.column || 0,
-            },
-          },
-          codeSnippet,
-        });
-        currentFunction = nodeId;
-      }
+      const nodeId = createNodeFromFunction(path, filePath);
+      if (nodeId) currentFunction = nodeId;
     },
+
+    // --- COMPONENT FUNCTION NODES ---
     VariableDeclarator(path: any) {
       if (
         t.isIdentifier(path.node.id) &&
         (t.isArrowFunctionExpression(path.node.init) ||
           t.isFunctionExpression(path.node.init))
       ) {
-        const name = path.node.id.name;
-        const line = path.node.loc?.start.line;
-        const col = path.node.loc?.start.column;
-        
-        // Generate fingerprint ID if location is available, otherwise use name
-        const nodeId = (line !== undefined && col !== undefined)
-          ? generateFingerprintId(filePath, line, col)
-          : name;
-        
-        const codeSnippet = generate(path.node).code;
-        graphStore.addNode(nodeId, {
-          name,
-          type: 'function',
-          filePath,
-          location: {
-            start: {
-              line: line || 0,
-              column: col || 0,
-            },
-            end: {
-              line: path.node.loc?.end.line || 0,
-              column: path.node.loc?.end.column || 0,
-            },
-          },
-          codeSnippet,
-        });
-        currentFunction = nodeId;
+        const nodeId = createNodeFromFunction(path, filePath);
+        if (nodeId) currentFunction = nodeId;
       }
     },
 
@@ -162,7 +145,7 @@ export function buildGraphFromFile(filePath: string) {
         if (parentFunc) {
           const parentLine = parentFunc.node.loc?.start.line;
           const parentCol = parentFunc.node.loc?.start.column;
-          
+
           // Generate parent function ID using fingerprint
           if (parentLine !== undefined && parentCol !== undefined) {
             parentComponentId = generateFingerprintId(filePath, parentLine, parentCol);
@@ -260,5 +243,5 @@ export function buildGraphFromFile(filePath: string) {
     },
   });
 
-  visualizeGraph(graphStore.graph);
+  graphStore.visualize();
 }

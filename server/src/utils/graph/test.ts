@@ -1,7 +1,7 @@
 // test.ts - Test file for buildGraphFromFile
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { buildGraphFromFile } from './buildGraphFromFile.ts';
+import { parseNodes } from './parseNodes.ts';
 import { graphStore } from './graphStore.ts';
 import getFiles from '../getFiles.ts';
 import generateFingerprintId from '../fingerprints/generateFingerprintId.ts';
@@ -31,7 +31,7 @@ files.forEach((file) => {
   console.log(`\n📄 Processing: ${path.relative(myAppRoot, file)}`);
   console.log('-'.repeat(60));
   try {
-    buildGraphFromFile(file);
+    parseNodes(file);
   } catch (error) {
     console.error(`❌ Error processing ${file}:`, error);
   }

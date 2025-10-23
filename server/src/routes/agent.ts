@@ -1,72 +1,24 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { buildGraphFromFile } from '../utils/graph/buildGraphFromFile.ts';
 import { graphStore } from '../utils/graph/graphStore.ts';
-import getFiles from '../utils/getFiles.ts';
 import { analyzeCodeWithAI } from '../utils/agent/promptAgent.ts';
 import { applyChange } from '../utils/agent/applyChange.ts';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const router = Router();
 
 // POST endpoint - receives fingerprint and message, builds graph, gets AI plan, and applies changes
-router.post('/', async (req: Request, res: Response) => {
+router.post('/prompt', async (req: Request, res: Response) => {
   const { fingerprintId, message } = req.body;
 
-  console.log(fingerprintId);
-  console.log(message);
-
   if (!fingerprintId || !message) {
-    return res.status(400).json({ 
-      error: 'Missing required fields: fingerprintId and message are required' 
+    return res.status(400).json({
+      error: 'Missing required fields: fingerprintId and message are required'
     });
   }
 
   try {
     console.log('Received prompt request:', { fingerprintId, message });
-
-    // First, get the file path from fingerprints.json
-    const fingerprintsPath = path.resolve(__dirname, '../../fingerprints.json');
-    
-    if (!fs.existsSync(fingerprintsPath)) {
-      return res.status(404).json({ error: 'Fingerprints file not found' });
-    }
-    
-    const fingerprintsData = fs.readFileSync(fingerprintsPath, 'utf-8');
-    const fingerprints = JSON.parse(fingerprintsData);
-    
-    // Check if the fingerprint ID exists
-    if (!fingerprints[fingerprintId]) {
-      return res.status(404).json({ error: 'Fingerprint not found' });
-    }
-
-    const fingerprintInfo = fingerprints[fingerprintId];
-    const filePath = fingerprintInfo.file;
-
-    // Build the graph from all files in the frontend repository
-    console.log('Building graph from frontend repository');
-    
-    // Get the frontend root directory (my-app/src)
-    const frontendRoot = path.resolve(__dirname, '../../../my-app/src');
-    
-    // Get all TypeScript/JavaScript React files
-    const files = getFiles(frontendRoot, ['.tsx', '.ts', '.jsx', '.js'], ['node_modules', 'dist', 'build']);
-    
-    console.log(`Found ${files.length} files to analyze`);
-    
-    // Build graph from each file
-    files.forEach((file) => {
-      try {
-        buildGraphFromFile(file);
-      } catch (error) {
-        console.error(`Error processing ${file}:`, error);
-      }
-    });
 
     // Search for the node in the graph
     const node = graphStore.graph.nodes.get(fingerprintId);
@@ -75,13 +27,12 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(404).json({ 
         error: 'Node not found in graph',
         fingerprintId,
-        filePath
       });
     }
 
     // Build context message based on template
     let promptMessage = `User intent: ${message}\n\n`;
-    
+
     // Main element
     promptMessage += `Main element: ${node.codeSnippet || node.name}\n`;
     promptMessage += `id: ${node.id}\n`;
@@ -90,11 +41,11 @@ router.post('/', async (req: Request, res: Response) => {
     // Recursively find all parent elements up to the root
     const getAllParents = (currentNode: any, depth: number = 0): void => {
       if (depth > 20) return; // Prevent infinite loops
-      
+
       const parentEdges = currentNode.edges.incoming
         .map((edgeId: string) => graphStore.graph.edges.get(edgeId))
         .filter((edge: any) => edge && edge.type === 'contains');
-      
+
       if (parentEdges.length > 0) {
         const parentEdge = parentEdges[0];
         const parentNode = graphStore.graph.nodes.get(parentEdge!.source);
@@ -103,7 +54,7 @@ router.post('/', async (req: Request, res: Response) => {
           promptMessage += `${level} element: ${parentNode.codeSnippet || parentNode.name}\n`;
           promptMessage += `id: ${parentNode.id}\n`;
           promptMessage += `File: ${parentNode.filePath || 'unknown'}\n\n`;
-          
+
           // Recursively get parent's parent
           getAllParents(parentNode, depth + 1);
         }
@@ -178,7 +129,7 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // POST endpoint - receives fingerprint and message, builds graph, returns node details (test route)
-router.post('/test', (req: Request, res: Response) => {
+router.post('/prompt/test', (req: Request, res: Response) => {
   const { fingerprintId, message } = req.body;
 
   console.log(fingerprintId);
@@ -193,52 +144,13 @@ router.post('/test', (req: Request, res: Response) => {
   try {
     console.log('Received prompt request:', { fingerprintId, message });
 
-    // First, get the file path from fingerprints.json
-    const fingerprintsPath = path.resolve(__dirname, '../../fingerprints.json');
-    
-    if (!fs.existsSync(fingerprintsPath)) {
-      return res.status(404).json({ error: 'Fingerprints file not found' });
-    }
-    
-    const fingerprintsData = fs.readFileSync(fingerprintsPath, 'utf-8');
-    const fingerprints = JSON.parse(fingerprintsData);
-    
-    // Check if the fingerprint ID exists
-    if (!fingerprints[fingerprintId]) {
-      return res.status(404).json({ error: 'Fingerprint not found' });
-    }
-
-    const fingerprintInfo = fingerprints[fingerprintId];
-    const filePath = fingerprintInfo.file;
-
-    // Build the graph from all files in the frontend repository
-    console.log('Building graph from frontend repository');
-    
-    // Get the frontend root directory (my-app/src)
-    const frontendRoot = path.resolve(__dirname, '../../../my-app/src');
-    
-    // Get all TypeScript/JavaScript React files
-    const files = getFiles(frontendRoot, ['.tsx', '.ts', '.jsx', '.js'], ['node_modules', 'dist', 'build']);
-    
-    console.log(`Found ${files.length} files to analyze`);
-    
-    // Build graph from each file
-    files.forEach((file) => {
-      try {
-        buildGraphFromFile(file);
-      } catch (error) {
-        console.error(`Error processing ${file}:`, error);
-      }
-    });
-
     // Search for the node in the graph
     const node = graphStore.graph.nodes.get(fingerprintId);
 
     if (!node) {
       return res.status(404).json({ 
         error: 'Node not found in graph',
-        fingerprintId,
-        filePath
+        fingerprintId
       });
     }
 

@@ -8,7 +8,6 @@ export default function Inspector({ children }: InspectorProps) {
   const [hoverEl, setHoverEl] = useState<HTMLElement | null>(null);
   const [clickEl, setClickEl] = useState<HTMLElement | null>(null);
   const [question, setQuestion] = useState<string>("");
-  const [fingerprintData, setFingerprintData] = useState<any>(null);
   const lockRef = React.useRef(false);
   const popupRef = React.useRef<HTMLElement | null>(null);
   const [enabled, setEnabled] = useState<boolean>(false);
@@ -65,7 +64,7 @@ export default function Inspector({ children }: InspectorProps) {
     try {
       console.log("Submitting to prompt agent:", { fingerprintId: fp, message: question });
 
-      const response = await fetch(`http://localhost:3001/api/promptAgent`, {
+      const response = await fetch(`http://localhost:3001/api/agent/prompt`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -89,7 +88,6 @@ export default function Inspector({ children }: InspectorProps) {
     // Clear state after submission
     setClickEl(null);
     setQuestion("");
-    setFingerprintData(null);
   };useEffect(() => {
     const handleMouseOver = (e: MouseEvent) => {
       // if an element is clicked (locked), ignore hover changes
@@ -123,27 +121,6 @@ export default function Inspector({ children }: InspectorProps) {
       if (!lockRef.current) {
         setClickEl(target);
         lockRef.current = true;
-
-        // Fetch fingerprint data from backend
-        if (fp) {
-          try {
-            const response = await fetch(`http://localhost:3001/api/sourceData/${fp}`);
-            if (response.ok) {
-              const data = await response.json();
-              setFingerprintData(data);
-              console.log("Fingerprint data:", data);
-            } else {
-              console.error("Failed to fetch fingerprint data");
-              setFingerprintData(null);
-            }
-          } catch (error) {
-            console.error("Error fetching fingerprint data:", error);
-            setFingerprintData(null);
-          }
-        } else {
-          setFingerprintData(null);
-        }
-
         return;
       }
 
@@ -153,7 +130,6 @@ export default function Inspector({ children }: InspectorProps) {
         if (!popupNode.contains(target)) {
           setClickEl(null);
           lockRef.current = false;
-          setFingerprintData(null);
         }
         return;
       }
@@ -162,7 +138,6 @@ export default function Inspector({ children }: InspectorProps) {
       if (clickEl && !clickEl.contains(target)) {
         setClickEl(null);
         lockRef.current = false;
-        setFingerprintData(null);
       }
     };
 
@@ -265,14 +240,6 @@ export default function Inspector({ children }: InspectorProps) {
             boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
             minWidth: "250px"
           }}>
-
-            {fingerprintData &&
-          <div style={{ marginBottom: "8px", fontSize: "12px", color: "#666" }}>
-                <div><strong>File:</strong> {fingerprintData.file}</div>
-                <div><strong>Element:</strong> {fingerprintData.elementName}</div>
-                <div><strong>Line:</strong> {fingerprintData.line}, <strong>Column:</strong> {fingerprintData.column}</div>
-              </div>
-          }
 
             <textarea
             placeholder="Ask a question about this element..."
