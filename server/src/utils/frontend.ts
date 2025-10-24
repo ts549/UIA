@@ -34,7 +34,7 @@ async function spawnFrontend(rootDir: string,
   // Generate fingerprints before spawning
   console.log('\n=== Generating Fingerprints ===');
   try {
-    const fingerprintResults = addFingerprints(rootDir, { attributeName });
+    const fingerprintResults = await addFingerprints(rootDir, { attributeName });
     console.log(`✓ Fingerprints generated: ${fingerprintResults.totalFingerprintsAdded} attributes added`);
     
     // Build graph and write to graph.json instead of fingerprints.json

@@ -10,18 +10,43 @@ import generateFingerprintId from "../fingerprints/generateFingerprintId.ts";
 const traverse = (_traverse as any).default || _traverse;
 const generate = (_generate as any).default || _generate;
 
-function createNodeFromFunction(path: any, filePath: string) {
+/**
+ * Extract original source code from file based on location
+ */
+function getOriginalCode(code: string, startLine: number, startColumn: number, endLine: number, endColumn: number): string {
+  const lines = code.split('\n');
+  
+  if (startLine === endLine) {
+    // Single line
+    return lines[startLine - 1].substring(startColumn, endColumn);
+  } else {
+    // Multiple lines
+    const firstLine = lines[startLine - 1].substring(startColumn);
+    const middleLines = lines.slice(startLine, endLine - 1);
+    const lastLine = lines[endLine - 1].substring(0, endColumn);
+    
+    return [firstLine, ...middleLines, lastLine].join('\n');
+  }
+}
+
+function createNodeFromFunction(path: any, filePath: string, fileCode: string) {
   const name = path.node.id?.name;
   if (name) {
     const line = path.node.loc?.start.line;
     const col = path.node.loc?.start.column;
+    const endLine = path.node.loc?.end.line;
+    const endCol = path.node.loc?.end.column;
     
     // Generate fingerprint ID if location is available, otherwise use name
     const nodeId = (line !== undefined && col !== undefined)
       ? generateFingerprintId(filePath, line, col)
       : name;
 
-    const codeSnippet = generate(path.node).code;
+    // Get original code snippet from source
+    const codeSnippet = (line !== undefined && col !== undefined && endLine !== undefined && endCol !== undefined)
+      ? getOriginalCode(fileCode, line, col, endLine, endCol)
+      : generate(path.node).code;
+    
     graphStore.addNode(nodeId, {
       name,
       type: 'function',
@@ -32,8 +57,8 @@ function createNodeFromFunction(path: any, filePath: string) {
           column: col || 0,
         },
         end: {
-          line: path.node.loc?.end.line || 0,
-          column: path.node.loc?.end.column || 0,
+          line: endLine || 0,
+          column: endCol || 0,
         },
       },
       codeSnippet,
@@ -63,7 +88,7 @@ export function parseNodes(filePath: string) {
   traverse(ast, {
     // --- FUNCTION NODES ---
     FunctionDeclaration(path: any) {
-      const nodeId = createNodeFromFunction(path, filePath);
+      const nodeId = createNodeFromFunction(path, filePath, code);
       if (nodeId) currentFunction = nodeId;
     },
 
@@ -74,7 +99,7 @@ export function parseNodes(filePath: string) {
         (t.isArrowFunctionExpression(path.node.init) ||
           t.isFunctionExpression(path.node.init))
       ) {
-        const nodeId = createNodeFromFunction(path, filePath);
+        const nodeId = createNodeFromFunction(path, filePath, code);
         if (nodeId) currentFunction = nodeId;
       }
     },
@@ -113,8 +138,12 @@ export function parseNodes(filePath: string) {
           }
         }
 
-        // Generate code snippet for this JSX element
-        const codeSnippet = generate(path.node).code;
+        // Get original code snippet from source
+        const endLine = path.node.loc?.end.line;
+        const endCol = path.node.loc?.end.column;
+        const codeSnippet = (line !== undefined && col !== undefined && endLine !== undefined && endCol !== undefined)
+          ? getOriginalCode(code, line, col, endLine, endCol)
+          : generate(path.node).code;
 
         // Add node for this JSX element instance
         graphStore.addNode(elementId, {

@@ -48,30 +48,6 @@ function fuzzyReplace(code: string, oldCode: string, newCode: string): { success
     return { success: true, result: code.replace(oldCode, newCode) };
   }
 
-  // Try normalized match
-  const normalizedOld = normalizeCode(oldCode);
-  const lines = code.split('\n');
-  
-  for (let i = 0; i < lines.length; i++) {
-    const lineWindow = lines.slice(i, Math.min(i + 5, lines.length)).join('\n');
-    const normalizedWindow = normalizeCode(lineWindow);
-    
-    if (normalizedWindow.includes(normalizedOld)) {
-      // Found a match - now find the exact substring to replace
-      const startLine = i;
-      let endLine = i;
-      
-      // Find how many lines the old code spans
-      const oldLines = oldCode.split('\n').length;
-      endLine = Math.min(startLine + oldLines, lines.length);
-      
-      const originalChunk = lines.slice(startLine, endLine).join('\n');
-      lines.splice(startLine, endLine - startLine, newCode);
-      
-      return { success: true, result: lines.join('\n') };
-    }
-  }
-
   return { success: false, result: code };
 }
 
@@ -126,7 +102,8 @@ export async function applyChange(planResponse: Plan): Promise<void> {
           // Show a snippet of the actual file for debugging
           const normalizedFile = normalizeCode(code);
           const snippet = normalizedFile.substring(0, 200);
-          console.warn(`      File starts with: "${snippet}..."`);
+          // console.warn(`      File starts with: "${snippet}..."`);
+          console.warn(`      File starts with: "${code}..."`)
           continue;
         }
 

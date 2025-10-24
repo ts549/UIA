@@ -4,7 +4,6 @@ import { graphStore } from '../utils/graph/graphStore.ts';
 import { analyzeCodeWithAI } from '../utils/agent/promptAgent.ts';
 import { applyChange } from '../utils/agent/applyChange.ts';
 
-
 const router = Router();
 
 // POST endpoint - receives fingerprint and message, builds graph, gets AI plan, and applies changes

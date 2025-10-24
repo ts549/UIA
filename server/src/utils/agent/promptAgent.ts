@@ -2,14 +2,22 @@ import OpenAI from 'openai';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const openai = new OpenAI({
-  apiKey: "",
+  apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Validate API key is loaded
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error('OPENAI_API_KEY is not set in environment variables');
+}
 
 /**
  * Calls OpenAI API to analyze code and generate modification plan
@@ -29,10 +37,10 @@ export async function analyzeCodeWithAI(contextString: string): Promise<any> {
     // Construct the full system message with output format instructions
     const fullSystemPrompt = `${systemPrompt}
 
-IMPORTANT: You must respond ONLY with valid JSON matching this exact format:
-${outputFormat}
+    IMPORTANT: You must respond ONLY with valid JSON matching this exact format:
+    ${outputFormat}
 
-Do not include any markdown code blocks, explanations, or additional text. Return only the raw JSON object.`;
+    Do not include any markdown code blocks, explanations, or additional text. Return only the raw JSON object.`;
 
     // Make API call
     const completion = await openai.chat.completions.create({

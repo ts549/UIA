@@ -2,6 +2,7 @@ import fs from 'fs';
 import * as parser from '@babel/parser';
 import _traverse from '@babel/traverse';
 import _generate from '@babel/generator';
+import prettier from 'prettier';
 import generateFingerprintId from './generateFingerprintId.ts';
 import getFiles from '../getFiles.ts';
 
@@ -13,7 +14,7 @@ const generate = (_generate as any).default || _generate;
  * Adds data-fingerprint attributes to all JSX elements in a file
  * @returns {object} Object containing success status and fingerprints added
  */
-function addFingerprintsToFile(filePath: string, attributeName: string = 'data-fingerprint') {
+async function addFingerprintsToFile(filePath: string, attributeName: string = 'data-fingerprint') {
   try {
     const code = fs.readFileSync(filePath, 'utf-8');
     let fingerprintsAdded = 0;
@@ -94,8 +95,13 @@ function addFingerprintsToFile(filePath: string, attributeName: string = 'data-f
         compact: false,
       });
 
+      // Format with Prettier before writing
+      const fileExtension = filePath.split('.').pop();
+      const parserType = fileExtension === 'tsx' ? 'typescript' : 'babel';
+      const formattedCode = await prettier.format(output.code, { parser: parserType });
+
       // Write the modified code back to the file
-      fs.writeFileSync(filePath, output.code, 'utf-8');
+      fs.writeFileSync(filePath, formattedCode, 'utf-8');
 
       return {
         success: true,
@@ -123,7 +129,7 @@ function addFingerprintsToFile(filePath: string, attributeName: string = 'data-f
 /**
  * Adds data-fingerprint attributes to all JSX elements in a project
  */
-export function addFingerprints(rootDir: string, options: {attributeName?: string, extensions?: string[], excludeDirs?: string[]} = {}) {
+export async function addFingerprints(rootDir: string, options: {attributeName?: string, extensions?: string[], excludeDirs?: string[]} = {}) {
   const {
     attributeName = 'data-fingerprint',
     extensions = ['.tsx', '.jsx'],
@@ -147,7 +153,7 @@ export function addFingerprints(rootDir: string, options: {attributeName?: strin
 
   for (const file of files) {
     console.log(`Processing: ${file}`);
-    const result = addFingerprintsToFile(file, attributeName);
+    const result = await addFingerprintsToFile(file, attributeName);
 
     if (result.success) {
       results.processedFiles++;
