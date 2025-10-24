@@ -2,6 +2,7 @@ import fs from "fs";
 import * as parser from "@babel/parser";
 import _traverse from '@babel/traverse';
 import _generate from '@babel/generator';
+import prettier from 'prettier';
 import getFiles from "../getFiles.ts";
 
 // Handle default export for CommonJS/ESM compatibility
@@ -18,7 +19,7 @@ interface RemoveFingerprintsResult {
 /**
  * Removes data-fingerprint attributes from all JSX elements in a file
  */
-function removeFingerprintsFromFile(filePath: string, attributeName: string = 'data-fingerprint'): RemoveFingerprintsResult {
+async function removeFingerprintsFromFile(filePath: string, attributeName: string = 'data-fingerprint'): Promise<RemoveFingerprintsResult> {
   try {
     const code = fs.readFileSync(filePath, 'utf-8');
     let fingerprintsRemoved = 0;
@@ -51,8 +52,13 @@ function removeFingerprintsFromFile(filePath: string, attributeName: string = 'd
         compact: false,
       });
 
+      // Format with Prettier before writing
+      const fileExtension = filePath.split('.').pop();
+      const parserType = fileExtension === 'tsx' ? 'typescript' : 'babel';
+      const formattedCode = await prettier.format(output.code, { parser: parserType });
+
       // Write the modified code back to the file
-      fs.writeFileSync(filePath, output.code, 'utf-8');
+      fs.writeFileSync(filePath, formattedCode, 'utf-8');
 
       return {
         success: true,
@@ -78,7 +84,7 @@ function removeFingerprintsFromFile(filePath: string, attributeName: string = 'd
 /**
  * Removes data-fingerprint attributes from all JSX elements in a project
  */
-export function removeFingerprints(rootDir: string, options: {attributeName?: string, extensions?: string[], excludeDirs?: string[]} = {}) {
+export async function removeFingerprints(rootDir: string, options: {attributeName?: string, extensions?: string[], excludeDirs?: string[]} = {}) {
   const {
     attributeName = 'data-fingerprint',
     extensions = ['.tsx', '.jsx'],
@@ -101,7 +107,7 @@ export function removeFingerprints(rootDir: string, options: {attributeName?: st
 
   for (const file of files) {
     console.log(`Processing: ${file}`);
-    const result = removeFingerprintsFromFile(file, attributeName);
+    const result = await removeFingerprintsFromFile(file, attributeName);
 
     if (result.success) {
       results.processedFiles++;

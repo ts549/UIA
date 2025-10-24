@@ -10,8 +10,9 @@ Given a user's intent and relevant source code snippets, your task is to:
 
 **CRITICAL REQUIREMENT FOR CODE CHANGES:**
 When providing the `old` and `new` code snippets in your changes array:
-- You MUST include the nearest parent element that has a `data-fingerprint` attribute
-- Start the code snippet from the opening tag of this parent element with the fingerprint
-- Include all children and content up to and including the closing tag of this parent element
+- You MUST include the nearest element that has a `data-fingerprint` attribute
+- If the element itself includes the attribute, give the snippet of the entire element
+- Start the code snippet from the opening tag of nearest element with the fingerprint
+- Include all children and content up to and including the closing tag of this element
 - This ensures the replacement has enough context to be uniquely identified in the file
 - Example: If changing a button inside a div with fingerprint, include the entire div from `<div data-fingerprint="...">` to `</div>`

@@ -121,7 +121,7 @@ async function stopFrontend(process: ExtendedChildProcess): Promise<void> {
       if (process.projectRootDir) {
         console.log('\n=== Removing Fingerprints ===');
         try {
-          const removeResults = removeFingerprints(
+          const removeResults = await removeFingerprints(
             process.projectRootDir,
             { attributeName: process.fingerprintAttributeName || 'data-fingerprint' }
           );

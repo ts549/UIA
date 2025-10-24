@@ -5,7 +5,6 @@ import _traverse from '@babel/traverse';
 import _generate from '@babel/generator';
 import * as t from "@babel/types";
 import { graphStore } from "./graphStore.ts";
-import generateFingerprintId from "../fingerprints/generateFingerprintId.ts";
 
 const traverse = (_traverse as any).default || _traverse;
 const generate = (_generate as any).default || _generate;
@@ -37,10 +36,8 @@ function createNodeFromFunction(path: any, filePath: string, fileCode: string) {
     const endLine = path.node.loc?.end.line;
     const endCol = path.node.loc?.end.column;
     
-    // Generate fingerprint ID if location is available, otherwise use name
-    const nodeId = (line !== undefined && col !== undefined)
-      ? generateFingerprintId(filePath, line, col)
-      : name;
+    // Use function name as node ID
+    const nodeId = name;
 
     // Get original code snippet from source
     const codeSnippet = (line !== undefined && col !== undefined && endLine !== undefined && endCol !== undefined)
@@ -77,9 +74,6 @@ export function parseNodes(filePath: string) {
     plugins: ["jsx", "typescript"],
   });
 
-  // Extract just the filename from the full path
-  const fileName = filePath.split(/[\\/]/).pop() || filePath;
-
   // Track the current function or component context
   let currentFunction: string | null = null;
   // Track the current JSX element context for calls
@@ -113,12 +107,23 @@ export function parseNodes(filePath: string) {
           : null;
         if (!tagName) return;
 
-        // Create unique ID using fingerprint
+        // Get element ID from data-fingerprint attribute
+        let elementId: string | null = null;
+        for (const attr of opening.attributes) {
+          if (t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'data-fingerprint') {
+            if (t.isStringLiteral(attr.value)) {
+              elementId = attr.value.value;
+              break;
+            }
+          }
+        }
+
+        // Skip elements without data-fingerprint attribute
+        if (!elementId) return;
+
+        // Get location for code snippet
         const line = path.node.loc?.start.line;
         const col = path.node.loc?.start.column;
-        const elementId = (line !== undefined && col !== undefined)
-          ? generateFingerprintId(filePath, line, col)
-          : `${fileName}_${Math.random().toString(36).substr(2, 9)}`;
 
         // Extract props from JSX attributes
         const props: Record<string, any> = {};
@@ -172,15 +177,8 @@ export function parseNodes(filePath: string) {
         let parentComponentId: string | null = null;
 
         if (parentFunc) {
-          const parentLine = parentFunc.node.loc?.start.line;
-          const parentCol = parentFunc.node.loc?.start.column;
-
-          // Generate parent function ID using fingerprint
-          if (parentLine !== undefined && parentCol !== undefined) {
-            parentComponentId = generateFingerprintId(filePath, parentLine, parentCol);
-          }
-          // Fallback to name if location not available
-          else if (t.isFunctionDeclaration(parentFunc.node) && parentFunc.node.id) {
+          // Use function name as parent component ID
+          if (t.isFunctionDeclaration(parentFunc.node) && parentFunc.node.id) {
             parentComponentId = parentFunc.node.id.name;
           }
           else if (parentFunc.parentPath?.isVariableDeclarator()) {
@@ -197,14 +195,22 @@ export function parseNodes(filePath: string) {
           const parentJSX = path.findParent((p: any) => p.isJSXElement());
           
           if (parentJSX) {
-            // This JSX has a parent JSX element - create contains edge from parent to this
-            const parentLine = parentJSX.node.loc?.start.line;
-            const parentCol = parentJSX.node.loc?.start.column;
-            const parentElementId = (parentLine !== undefined && parentCol !== undefined)
-              ? generateFingerprintId(filePath, parentLine, parentCol)
-              : `${fileName}_${Math.random().toString(36).substr(2, 9)}`;
+            // This JSX has a parent JSX element - get its data-fingerprint attribute
+            let parentElementId: string | null = null;
+            const parentOpening = parentJSX.node.openingElement;
+            for (const attr of parentOpening.attributes) {
+              if (t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'data-fingerprint') {
+                if (t.isStringLiteral(attr.value)) {
+                  parentElementId = attr.value.value;
+                  break;
+                }
+              }
+            }
             
-            graphStore.addEdge("contains", parentElementId, elementId);
+            // Only create edge if parent has data-fingerprint
+            if (parentElementId) {
+              graphStore.addEdge("contains", parentElementId, elementId);
+            }
           } else {
             // This is a top-level JSX element in the component - directly contained by the component
             graphStore.addEdge("contains", parentComponentId, elementId);

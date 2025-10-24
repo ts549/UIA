@@ -14,5 +14,5 @@
     } \
   ], \
   "confidence": 0.92, \
-  "explanation": "The button needs hover behavior. The change includes the entire parent div with data-fingerprint to ensure unique identification." \
+  "explanation": "The button needs hover behavior. The change includes the nearest div with data-fingerprint to ensure unique identification." \
 }

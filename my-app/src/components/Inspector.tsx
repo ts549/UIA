@@ -54,7 +54,7 @@ export default function Inspector({ children }: InspectorProps) {
   };
 
   const handleSubmit = async () => {
-    const fp = clickEl?.getAttribute('data-fingerprint');
+    const fp = clickEl?.getAttribute("data-fingerprint");
 
     if (!fp || !question) {
       console.error("Missing fingerprint or question");
@@ -62,17 +62,20 @@ export default function Inspector({ children }: InspectorProps) {
     }
 
     try {
-      console.log("Submitting to prompt agent:", { fingerprintId: fp, message: question });
+      console.log("Submitting to prompt agent:", {
+        fingerprintId: fp,
+        message: question,
+      });
 
       const response = await fetch(`http://localhost:3001/api/agent/prompt`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           fingerprintId: fp,
-          message: question
-        })
+          message: question,
+        }),
       });
 
       if (response.ok) {
@@ -88,7 +91,8 @@ export default function Inspector({ children }: InspectorProps) {
     // Clear state after submission
     setClickEl(null);
     setQuestion("");
-  };useEffect(() => {
+  };
+  useEffect(() => {
     const handleMouseOver = (e: MouseEvent) => {
       // if an element is clicked (locked), ignore hover changes
       if (lockRef.current) return;
@@ -111,7 +115,7 @@ export default function Inspector({ children }: InspectorProps) {
       if (target.closest('[data-inspector-ui="true"]')) return;
 
       // Get fingerprint from data-fingerprint attribute
-      const fp = target.getAttribute('data-fingerprint');
+      const fp = target.getAttribute("data-fingerprint");
       if (fp) console.log("Clicked element fingerprint:", fp);
 
       e.preventDefault();
@@ -156,9 +160,9 @@ export default function Inspector({ children }: InspectorProps) {
 
   // compute highlight from the clicked element (if locked) or the hovered element
   const getRect = (el: HTMLElement | null) =>
-  el && typeof el.getBoundingClientRect === "function" ?
-  el.getBoundingClientRect() :
-  null;
+    el && typeof el.getBoundingClientRect === "function"
+      ? el.getBoundingClientRect()
+      : null;
 
   const highlight = getRect(clickEl ?? hoverEl);
   const clickRect = getRect(clickEl);
@@ -173,10 +177,51 @@ export default function Inspector({ children }: InspectorProps) {
     }
   }, [enabled]);
 
+  const handleFingerprintsRefresh = async () => {
+    try {
+      const response = await fetch(
+        "http://localhost:3001/api/fingerprints/refresh",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (response.ok) {
+        console.log("Fingerprints refreshed successfully");
+      } else {
+        console.error("Failed to refresh fingerprints");
+      }
+    } catch (error) {
+      console.error("Error refreshing fingerprints:", error);
+    }
+  };
 
   return (
     <>
       {children}
+
+      {/* Refresh button */}
+      <button
+        data-inspector-ui="true"
+        onClick={handleFingerprintsRefresh}
+        style={{
+          position: "absolute",
+          bottom: 12,
+          right: 165,
+          zIndex: 20000,
+          padding: "6px 10px",
+          borderRadius: 6,
+          border: "none",
+          background: "#f59e0b",
+          color: "white",
+          cursor: "pointer",
+        }}
+      >
+        Refresh
+      </button>
 
       {/* Absolute button inside the component that activates the inspector's highlight/popup */}
       <button
@@ -192,78 +237,83 @@ export default function Inspector({ children }: InspectorProps) {
           border: "none",
           background: enabled ? "#0b8" : "#08f",
           color: "white",
-          cursor: "pointer"
-        }}>
-
+          cursor: "pointer",
+        }}
+      >
         Activate Inspector
       </button>
 
       {/* Highlight overlay */}
-      {enabled && highlight &&
-      ReactDOM.createPortal(
-        <div
-          id="overlay"
-          style={{
-            position: "fixed",
-            top: highlight.top + window.scrollY,
-            left: highlight.left + window.scrollX,
-            width: highlight.width,
-            height: highlight.height,
-            border: "2px solid red",
-            background: "rgba(255, 0, 0, 0.1)",
-            pointerEvents: "none",
-            zIndex: 9999
-          }} />,
+      {enabled &&
+        highlight &&
+        ReactDOM.createPortal(
+          <div
+            id="overlay"
+            style={{
+              position: "fixed",
+              top: highlight.top + window.scrollY,
+              left: highlight.left + window.scrollX,
+              width: highlight.width,
+              height: highlight.height,
+              border: "2px solid red",
+              background: "rgba(255, 0, 0, 0.1)",
+              pointerEvents: "none",
+              zIndex: 9999,
+            }}
+          />,
 
-        document.body
-      )}
+          document.body,
+        )}
 
       {/* Click popup */}
-      {enabled && clickEl &&
-      ReactDOM.createPortal(
-        <div
-          id="popup"
-          data-inspector-ui="true"
-          ref={(el: HTMLDivElement | null): void => {
-            popupRef.current = el;
-            return;
-          }}
-          style={{
-            position: "fixed",
-            top: popupPosition.top,
-            left: popupPosition.left,
-            background: "white",
-            border: "1px solid #ccc",
-            borderRadius: "8px",
-            padding: "8px",
-            zIndex: 10000,
-            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-            minWidth: "250px"
-          }}>
-
+      {enabled &&
+        clickEl &&
+        ReactDOM.createPortal(
+          <div
+            id="popup"
+            data-inspector-ui="true"
+            ref={(el: HTMLDivElement | null): void => {
+              popupRef.current = el;
+              return;
+            }}
+            style={{
+              position: "fixed",
+              top: popupPosition.top,
+              left: popupPosition.left,
+              background: "white",
+              border: "1px solid #ccc",
+              borderRadius: "8px",
+              padding: "8px",
+              zIndex: 10000,
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+              minWidth: "250px",
+            }}
+          >
             <textarea
-            placeholder="Ask a question about this element..."
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            style={{ width: "100%", height: "80px", fontSize: "12px" }} />
+              placeholder="Ask a question about this element..."
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              style={{ width: "100%", height: "80px", fontSize: "12px" }}
+            />
 
             <button
-            onClick={handleSubmit}
-            style={{
-              display: "block",
-              marginTop: "4px",
-              padding: "4px 8px",
-              borderRadius: "4px",
-              border: "none",
-              background: "#007bff",
-              color: "white",
-              cursor: "pointer"
-            }}>
-            
+              onClick={handleSubmit}
+              style={{
+                display: "block",
+                marginTop: "4px",
+                padding: "4px 8px",
+                borderRadius: "4px",
+                border: "none",
+                background: "#007bff",
+                color: "white",
+                cursor: "pointer",
+              }}
+            >
               Submit
             </button>
           </div>,
-        document.body
-      )}
-    </>);
+          document.body,
+        )}
+    </>
+  );
 }
