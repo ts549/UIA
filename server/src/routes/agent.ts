@@ -23,7 +23,7 @@ router.post('/prompt', async (req: Request, res: Response) => {
     const node = graphStore.graph.nodes.get(fingerprintId);
 
     if (!node) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Node not found in graph',
         fingerprintId,
       });
@@ -66,7 +66,7 @@ router.post('/prompt', async (req: Request, res: Response) => {
     const callEdges = node.edges.outgoing
       .map(edgeId => graphStore.graph.edges.get(edgeId))
       .filter(edge => edge && edge.type === 'calls');
-    
+
     for (const callEdge of callEdges) {
       if (callEdge) {
         const calledNode = graphStore.graph.nodes.get(callEdge.target);

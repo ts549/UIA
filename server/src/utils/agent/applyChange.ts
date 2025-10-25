@@ -40,9 +40,9 @@ function normalizeCode(code: string): string {
 }
 
 /**
- * Find and replace code with fuzzy matching
+ * Find and replace code
  */
-function fuzzyReplace(code: string, oldCode: string, newCode: string): { success: boolean; result: string } {
+function replace(code: string, oldCode: string, newCode: string): { success: boolean; result: string } {
   // Try exact match first
   if (code.includes(oldCode)) {
     return { success: true, result: code.replace(oldCode, newCode) };
@@ -92,7 +92,7 @@ export async function applyChange(planResponse: Plan): Promise<void> {
         }
 
         // Try fuzzy replacement
-        const result = fuzzyReplace(code, change.old, change.new);
+        const result = replace(code, change.old, change.new);
         
         if (!result.success) {
           console.warn(`   ⚠️  Could not find code to replace:`);
@@ -102,8 +102,7 @@ export async function applyChange(planResponse: Plan): Promise<void> {
           // Show a snippet of the actual file for debugging
           const normalizedFile = normalizeCode(code);
           const snippet = normalizedFile.substring(0, 200);
-          // console.warn(`      File starts with: "${snippet}..."`);
-          console.warn(`      File starts with: "${code}..."`)
+          console.warn(`      File starts with: "${snippet}..."`);
           continue;
         }
 
